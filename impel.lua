@@ -29,11 +29,34 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
-
+local serverCode = "In20xJeHOC"
 -- CÀI ĐẶT TỌA ĐỘ TẠI ĐÂY
 local targetPos = Vector3.new(1000, 50, 2000) -- Thay số này bằng tọa độ bạn cần
 local speed = 100 -- Tốc độ bay (nên để từ 100-150 để tránh bị kick)
 
+
+local function joinPrivateServer(code)
+    if code == "" or code == "NHẬP_CODE_TẠI_ĐÂY" then
+        warn("Bạn chưa nhập mã Server vào script trên GitHub!")
+        return
+    end
+
+    -- GPO thường dùng Remote trong Folder Events để xử lý mã SVV
+    local joinRemote = ReplicatedStorage:FindFirstChild("Events") and ReplicatedStorage.Events:FindFirstChild("JoinPrivateServer")
+    
+    if joinRemote then
+        -- Sử dụng phương thức chính thức của game để tránh bị kick
+        joinRemote:InvokeServer(code)
+    else
+        -- Cách dự phòng bằng dịch vụ của Roblox nếu game thay đổi Remote
+        TeleportService:TeleportToPrivateServer(game.PlaceId, code, {player})
+    end
+end
+
+-- Thực hiện lệnh join ngay khi chạy script
+joinPrivateServer(serverCode)
+
+--[[
 -- Tính toán thời gian dựa trên khoảng cách và tốc độ
 local distance = (rootPart.Position - targetPos).Magnitude
 local duration = distance / speed
@@ -60,3 +83,4 @@ flyTween:Play()
 flyTween.Completed:Connect(function()
     print("Đã đến nơi!")
 end)
+]]
