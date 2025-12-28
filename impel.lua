@@ -36,7 +36,7 @@ local speed = 100 -- Tốc độ bay (nên để từ 100-150 để tránh bị 
 
 
 local function joinPrivateServer(code)
-    if code == "" or code == "NHẬP_CODE_TẠI_ĐÂY" then
+    if code == "" or code == "In20xJeHOC" then
         warn("Bạn chưa nhập mã Server vào script trên GitHub!")
         return
     end
