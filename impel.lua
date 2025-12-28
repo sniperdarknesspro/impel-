@@ -1,7 +1,7 @@
 --[[
 -- Sử dụng game:HttpGet để tải nội dung từ GitHub về
 local success, scriptContent = pcall(function()
-    return game:HttpGet("https://raw.githubusercontent.com/User_Cua_Ban/Repo_Cua_Ban/main/script.lua")
+    return game:HttpGet("https://raw.githubusercontent.com/sniperdarknesspro/impel-/main/impel.lua")
 end)
 
 if success then
@@ -30,4 +30,33 @@ local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
 
-print("Setup hoàn tất cho: " .. player.Name)
+-- CÀI ĐẶT TỌA ĐỘ TẠI ĐÂY
+local targetPos = Vector3.new(1000, 50, 2000) -- Thay số này bằng tọa độ bạn cần
+local speed = 100 -- Tốc độ bay (nên để từ 100-150 để tránh bị kick)
+
+-- Tính toán thời gian dựa trên khoảng cách và tốc độ
+local distance = (rootPart.Position - targetPos).Magnitude
+local duration = distance / speed
+
+local tweenInfo = TweenInfo.new(
+    duration, 
+    Enum.EasingStyle.Linear, -- Bay đều, không nhanh dần hay chậm dần
+    Enum.EasingDirection.Out
+)
+
+local targetCFrame = {CFrame = CFrame.new(targetPos)}
+local flyTween = TweenService:Create(rootPart, tweenInfo, targetCFrame)
+
+-- Thông báo bắt đầu bay
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "GPO Fly",
+    Text = "Đang bay đến tọa độ mục tiêu...",
+    Duration = 3
+})
+
+flyTween:Play()
+
+-- Khi bay xong sẽ thông báo
+flyTween.Completed:Connect(function()
+    print("Đã đến nơi!")
+end)
