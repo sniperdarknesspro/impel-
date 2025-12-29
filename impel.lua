@@ -29,11 +29,6 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
-local serverCode = "In20xJeHOC"
--- CÀI ĐẶT TỌA ĐỘ TẠI ĐÂY
-local targetPos = Vector3.new(1000, 50, 2000) -- Thay số này bằng tọa độ bạn cần
-local speed = 100 -- Tốc độ bay (nên để từ 100-150 để tránh bị kick)
-
 
 -- [[ CẤU HÌNH ]] --
 local TARGET = Vector3.new(1000, 30, 2000) -- Nhập tọa độ đích vào đây
