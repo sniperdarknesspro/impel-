@@ -19,51 +19,61 @@ end
 ]]
 -- Dịch vụ hệ thống
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 -- Thông tin người chơi
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-local humanoid = character:WaitForChild("Humanoid")
+-- SỬA LỖI: Đặt tên thống nhất là 'root' để khớp với code bên dưới
+local root = character:WaitForChild("HumanoidRootPart") 
 
 -- [[ CẤU HÌNH ]] --
+-- Bạn chỉ cần chỉnh 3 dòng này thôi
 local TARGET = Vector3.new(1000, 30, 2000) -- Nhập tọa độ đích vào đây
-local HEIGHT = 200 -- Độ cao trên trời (đủ cao để né núi)
-local SPEED = 2.5 -- Tốc độ bay ngang
+local HEIGHT = 400 -- Độ cao an toàn (Nên để 400-500 để chắc chắn qua núi)
+local SPEED = 2.5 -- Tốc độ bay ngang (2.5 là ổn định)
 
-local moving = true -- Biến kiểm soát
+-- Biến kiểm soát
+local moving = true 
 
+-- Nếu tìm thấy nhân vật thì mới chạy
 if root then
+    print("Script bắt đầu chạy...") -- In ra để biết script đã nhận
+    
     RunService.RenderStepped:Connect(function()
         if not moving then return end
         
-        root.Anchored = true -- Khóa nhân vật
+        -- Luôn giữ nhân vật không bị rơi
+        root.Anchored = true 
+        
         local curPos = root.Position
+        -- Tính khoảng cách ngang tới đích
         local hDist = Vector3.new(TARGET.X - curPos.X, 0, TARGET.Z - curPos.Z).Magnitude
 
-        -- BƯỚC 1: TP LÊN TRỜI (Nếu đang ở thấp)
-        if curPos.Y < HEIGHT - 10 and hDist > 5 then
-            -- Dịch chuyển tức thời trục Y lên 500 (Xuyên qua trần nhà)
+        -- BƯỚC 1: TP LÊN TRỜI (Nếu đang ở thấp và còn xa đích)
+        if curPos.Y < HEIGHT - 10 and hDist > 10 then
+            -- Dịch chuyển tức thời lên độ cao an toàn
             root.CFrame = CFrame.new(curPos.X, HEIGHT, curPos.Z)
             
         -- BƯỚC 2: BAY NGANG (Nếu chưa tới đích)
         elseif hDist > 5 then
-            -- Tính toán vị trí tiếp theo trên trời
+            -- Tính toán hướng bay
             local skyTarget = Vector3.new(TARGET.X, HEIGHT, TARGET.Z)
             local direction = (skyTarget - curPos).Unit
+            
+            -- Di chuyển nhân vật
             root.CFrame = root.CFrame + (direction * SPEED)
 
         -- BƯỚC 3: TP XUỐNG & KẾT THÚC
         else
             root.CFrame = CFrame.new(TARGET) -- Bùm xuống đích
-            root.Anchored = false -- Mở khóa
+            root.Anchored = false -- Mở khóa nhân vật
             moving = false -- Tắt script
+            print("Đã đến nơi!")
         end
     end)
+else
+    warn("Không tìm thấy nhân vật! Hãy reset và chạy lại.")
 end
 
 --[[
