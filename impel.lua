@@ -35,26 +35,41 @@ local targetPos = Vector3.new(1000, 50, 2000) -- Thay số này bằng tọa đ�
 local speed = 100 -- Tốc độ bay (nên để từ 100-150 để tránh bị kick)
 
 
-local function joinPrivateServer(code)
-    if code == "" or code == "In20xJeHOC" then
-        warn("Bạn chưa nhập mã Server vào script trên GitHub!")
-        return
-    end
+-- [[ CẤU HÌNH ]] --
+local TARGET = Vector3.new(1000, 30, 2000) -- Nhập tọa độ đích vào đây
+local HEIGHT = 200 -- Độ cao trên trời (đủ cao để né núi)
+local SPEED = 2.5 -- Tốc độ bay ngang
 
-    -- GPO thường dùng Remote trong Folder Events để xử lý mã SVV
-    local joinRemote = ReplicatedStorage:FindFirstChild("Events") and ReplicatedStorage.Events:FindFirstChild("JoinPrivateServer")
-    
-    if joinRemote then
-        -- Sử dụng phương thức chính thức của game để tránh bị kick
-        joinRemote:InvokeServer(code)
-    else
-        -- Cách dự phòng bằng dịch vụ của Roblox nếu game thay đổi Remote
-        TeleportService:TeleportToPrivateServer(game.PlaceId, code, {player})
-    end
+local moving = true -- Biến kiểm soát
+
+if root then
+    RunService.RenderStepped:Connect(function()
+        if not moving then return end
+        
+        root.Anchored = true -- Khóa nhân vật
+        local curPos = root.Position
+        local hDist = Vector3.new(TARGET.X - curPos.X, 0, TARGET.Z - curPos.Z).Magnitude
+
+        -- BƯỚC 1: TP LÊN TRỜI (Nếu đang ở thấp)
+        if curPos.Y < HEIGHT - 10 and hDist > 5 then
+            -- Dịch chuyển tức thời trục Y lên 500 (Xuyên qua trần nhà)
+            root.CFrame = CFrame.new(curPos.X, HEIGHT, curPos.Z)
+            
+        -- BƯỚC 2: BAY NGANG (Nếu chưa tới đích)
+        elseif hDist > 5 then
+            -- Tính toán vị trí tiếp theo trên trời
+            local skyTarget = Vector3.new(TARGET.X, HEIGHT, TARGET.Z)
+            local direction = (skyTarget - curPos).Unit
+            root.CFrame = root.CFrame + (direction * SPEED)
+
+        -- BƯỚC 3: TP XUỐNG & KẾT THÚC
+        else
+            root.CFrame = CFrame.new(TARGET) -- Bùm xuống đích
+            root.Anchored = false -- Mở khóa
+            moving = false -- Tắt script
+        end
+    end)
 end
-
--- Thực hiện lệnh join ngay khi chạy script
-joinPrivateServer(serverCode)
 
 --[[
 -- Tính toán thời gian dựa trên khoảng cách và tốc độ
