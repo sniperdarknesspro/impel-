@@ -13,94 +13,95 @@ else
     warn("Không thể kết nối tới GitHub. Kiểm tra lại internet hoặc link!")
 end
 ]]
---[[ 
-    GPO Script Project
-    Phần 1: Khởi tạo Dịch vụ và Biến người chơi
-]]
--- Dịch vụ hệ thống
+
+-- ==========================================================
+-- PHẦN 1: ANTI-CHEAT BYPASS (Trích xuất từ natalie wood.txt)
+-- ==========================================================
+
+-- 1. Xóa hệ thống quản trị (Adonis) và các script check ClientMover
+task.spawn(function()
+    pcall(function()
+        -- Quét trong game
+        for _, v in ipairs(game:GetDescendants()) do
+            if v.Name:lower():match("adonis") or v.Name == "__FUNCTION" or v.Name:match("ClientMover") then
+                v:Destroy()
+            end
+        end
+        
+        -- Quét các instance ẩn (nil instances)
+        if getnilinstances then
+            for _, v in ipairs(getnilinstances()) do
+                if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") or v.Name:match("ClientMover") or v.Name == "__FUNCTION" then
+                    v:Destroy()
+                end
+            end
+        end
+    end)
+end)
+
+-- 2. Hook RemoteEvent để chặn gửi thông tin về Server (Mode == "Get")
+task.spawn(function()
+    pcall(function()
+        local originalFireServer
+        -- Lưu ý: Cần executor hỗ trợ hookfunction và newcclosure
+        originalFireServer = hookfunction(Instance.new("RemoteEvent").FireServer, newcclosure(function(self, ...)
+            local args = {...}
+            -- Nếu server yêu cầu lấy thông tin ("Get"), chặn lại
+            if typeof(args[1]) == "table" and args[1].Mode == "Get" then
+                return nil 
+            end
+            return originalFireServer(self, ...)
+        end))
+    end)
+end)
+
+-- 3. Actor Bypass ("Paul Greyrat") - Vô hiệu hóa báo lỗi (Error Logging)
+-- Đoạn này yêu cầu executor hỗ trợ run_on_actor
+task.spawn(function()
+    pcall(function()
+        local rf = game:GetService("ReplicatedFirst")
+        local actor = rf:WaitForChild("paul greyrat", 3) -- Chờ tối đa 3s
+        
+        if actor and run_on_actor then
+            run_on_actor(actor, [[
+                local Context = game:GetService('ScriptContext')
+                -- Tìm các kết nối vào sự kiện lỗi và vô hiệu hóa chúng
+                for i,v in next, getconnections(Context.Error) do 
+                    if v.Function and debug.getinfo(v.Function).nups > 1 then 
+                        hookfunction(v.Function, function() end)
+                    end
+                end
+            ]])
+        end
+    end)
+end)
+
+wait(1) -- Đợi 1 chút để các bypass kịp xử lý
+
+-- ==========================================================
+-- PHẦN 2: SCRIPT CỦA BẠN
+-- ==========================================================
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
--- Thông tin người chơi
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
--- SỬA LỖI: Đặt tên thống nhất là 'root' để khớp với code bên dưới
-local root = character:WaitForChild("HumanoidRootPart") 
+local root = character:WaitForChild("HumanoidRootPart")
 
--- [[ CẤU HÌNH ]] --
--- Bạn chỉ cần chỉnh 3 dòng này thôi
-local TARGET = Vector3.new(1000, 30, 2000) -- Nhập tọa độ đích vào đây
-local HEIGHT = 400 -- Độ cao an toàn (Nên để 400-500 để chắc chắn qua núi)
-local SPEED = 2.5 -- Tốc độ bay ngang (2.5 là ổn định)
+-- Thông báo đã bypass xong
+print("Đã thực hiện bypass anti-cheat.")
 
--- Biến kiểm soát
-local moving = true 
-
--- Nếu tìm thấy nhân vật thì mới chạy
-if root then
-    print("Script bắt đầu chạy...") -- In ra để biết script đã nhận
-    
-    RunService.RenderStepped:Connect(function()
-        if not moving then return end
-        
-        -- Luôn giữ nhân vật không bị rơi
-        root.Anchored = true 
-        
-        local curPos = root.Position
-        -- Tính khoảng cách ngang tới đích
-        local hDist = Vector3.new(TARGET.X - curPos.X, 0, TARGET.Z - curPos.Z).Magnitude
-
-        -- BƯỚC 1: TP LÊN TRỜI (Nếu đang ở thấp và còn xa đích)
-        if curPos.Y < HEIGHT - 10 and hDist > 10 then
-            -- Dịch chuyển tức thời lên độ cao an toàn
-            root.CFrame = CFrame.new(curPos.X, HEIGHT, curPos.Z)
-            
-        -- BƯỚC 2: BAY NGANG (Nếu chưa tới đích)
-        elseif hDist > 5 then
-            -- Tính toán hướng bay
-            local skyTarget = Vector3.new(TARGET.X, HEIGHT, TARGET.Z)
-            local direction = (skyTarget - curPos).Unit
-            
-            -- Di chuyển nhân vật
-            root.CFrame = root.CFrame + (direction * SPEED)
-
-        -- BƯỚC 3: TP XUỐNG & KẾT THÚC
-        else
-            root.CFrame = CFrame.new(TARGET) -- Bùm xuống đích
-            root.Anchored = false -- Mở khóa nhân vật
-            moving = false -- Tắt script
-            print("Đã đến nơi!")
-        end
-    end)
-else
-    warn("Không tìm thấy nhân vật! Hãy reset và chạy lại.")
-end
-
---[[
--- Tính toán thời gian dựa trên khoảng cách và tốc độ
-local distance = (rootPart.Position - targetPos).Magnitude
-local duration = distance / speed
-
-local tweenInfo = TweenInfo.new(
-    duration, 
-    Enum.EasingStyle.Linear, -- Bay đều, không nhanh dần hay chậm dần
-    Enum.EasingDirection.Out
-)
-
-local targetCFrame = {CFrame = CFrame.new(targetPos)}
-local flyTween = TweenService:Create(rootPart, tweenInfo, targetCFrame)
-
--- Thông báo bắt đầu bay
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "GPO Fly",
-    Text = "Đang bay đến tọa độ mục tiêu...",
-    Duration = 3
-})
-
-flyTween:Play()
-
--- Khi bay xong sẽ thông báo
-flyTween.Completed:Connect(function()
-    print("Đã đến nơi!")
+-- Sử dụng game:HttpGet để tải nội dung từ GitHub về
+local success, scriptContent = pcall(function()
+    return game:HttpGet("https://raw.githubusercontent.com/sniperdarknesspro/impel-/main/impel.lua")
 end)
-]]
+
+if success then
+    -- Chuyển chuỗi văn bản thành code có thể chạy được
+    local runScript = loadstring(scriptContent)
+    runScript() 
+    print("Script GPO của bạn đã chạy!")
+else
+    warn("Không thể kết nối tới GitHub. Kiểm tra lại internet hoặc link!")
+end
