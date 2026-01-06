@@ -16,17 +16,16 @@ end
 -- [[ AUTO IMPEL DOWN - FULL BYPASS & PRIORITY COLLECT ]]
 -- Thứ tự ưu tiên: Key > Bomb > ImpelGuard > Chest (Rương số)
 
--- [[ CONFIG & SETTINGS ]]
-getgenv().AC = true
+getgenv().AC = true 
 local TS = game:GetService("TweenService")
 local RS = game:GetService("RunService")
-local Re = game:GetService("ReplicatedStorage")
 local lp = game.Players.LocalPlayer
+local Re = game:GetService("ReplicatedStorage")
 
--- [[ PHẦN 1: BYPASS & ANTI-BAN ]]
+-- [[ PHẦN 1: BYPASS ANTI-CHEAT ]]
 task.spawn(function()
     pcall(function()
-        for _,v in pairs(game:GetDescendants()) do
+        for _, v in pairs(game:GetDescendants()) do
             if v.Name:lower():match("adonis") or v.Name:match("ClientMover") then v:Destroy() end
         end
     end)
@@ -39,7 +38,7 @@ task.spawn(function()
     end)
 end)
 
--- [[ PHẦN 2: AUTO SKILL & STATS ]]
+-- [[ PHẦN 2: AUTO SKILL ]]
 local function sk()
     pcall(function()
         Re.Events.stats:FireServer("DevilFruitMastery", nil, 700)
@@ -49,7 +48,7 @@ local function sk()
     end)
 end
 
--- [[ PHẦN 3: HÀM DI CHUYỂN THANG MÁY (ELEVATOR) ]]
+-- [[ PHẦN 3: DI CHUYỂN THANG MÁY (Y HIỆN TẠI + 200) ]]
 local function go(t, h)
     local c = lp.Character
     local r = c and c:FindFirstChild("HumanoidRootPart")
@@ -61,26 +60,27 @@ local function go(t, h)
         for _,p in pairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
     end)
 
-    -- Logic di chuyển 3 bước
-    local startP = r.Position
-    local targetP = t:GetPivot().Position + Vector3.new(0, h or 5, 0)
-    local skyY = 500
+    -- Lấy vị trí Y hiện tại và cộng thêm 200
+    local startPos = r.Position
+    local skyY = startPos.Y + 200 
+    local targetLanding = t:GetPivot().Position + Vector3.new(0, h or 5, 0)
     
-    -- 1. Tele lên trời
-    r.CFrame = CFrame.new(startP.X, skyY, startP.Z)
+    -- 1. THANG MÁY LÊN: Từ Y hiện tại nhảy lên +200
+    r.CFrame = CFrame.new(startPos.X, skyY, startPos.Z)
     task.wait(0.1)
     
-    -- 2. Bay ngang (Tốc độ 100)
-    local skyP = Vector3.new(targetP.X, skyY, targetP.Z)
-    local tw = TS:Create(r, TweenInfo.new((r.Position-skyP).Magnitude/100, Enum.EasingStyle.Linear), {CFrame = CFrame.new(skyP)})
+    -- 2. BAY NGANG TRÊN TRỜI: Giữ nguyên độ cao skyY
+    local skyPoint = Vector3.new(targetLanding.X, skyY, targetLanding.Z)
+    local dist = (r.Position - skyPoint).Magnitude
+    local tw = TS:Create(r, TweenInfo.new(dist/100, Enum.EasingStyle.Linear), {CFrame = CFrame.new(skyPoint)})
     tw:Play()
     tw.Completed:Wait()
     
-    -- 3. Tele xuống mục tiêu
-    r.CFrame = CFrame.new(targetP)
+    -- 3. THANG MÁY XUỐNG: Đáp xuống mục tiêu
+    r.CFrame = CFrame.new(targetLanding)
     task.wait(0.2)
 
-    -- Nhặt đồ / Mở rương
+    -- Nhặt đồ
     local p = t:FindFirstChildOfClass("ProximityPrompt", true)
     if p then
         p.HoldDuration = 0
@@ -92,19 +92,17 @@ local function go(t, h)
     
     f = false
     nc:Disconnect()
-    sk() -- Dùng skill sau khi tới nơi
+    sk()
 end
 
--- [[ PHẦN 4: VÒNG LẶP CHÍNH (THỨ TỰ ƯU TIÊN) ]]
+-- [[ PHẦN 4: VÒNG LẶP CHÍNH ]]
 task.spawn(function()
     while getgenv().AC do
         task.wait(1)
         local r = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
         if r then
-            -- Kiểm tra ưu tiên: Key > Bomb
+            -- Thứ tự ưu tiên: Key > Bomb > Guard/Chest
             local t = workspace.Effects:FindFirstChild("Key") or workspace.Effects:FindFirstChild("Bomb")
-            
-            -- Nếu không có, tìm ImpelGuard hoặc Rương ID
             if not t then
                 local m = math.huge
                 for _,v in pairs(workspace:GetDescendants()) do
@@ -114,13 +112,7 @@ task.spawn(function()
                     end
                 end
             end
-            
-            -- Thực hiện di chuyển nếu tìm thấy mục tiêu
-            if t then
-                print("Dang di chuyen den: " .. t.Name)
-                go(t, 5)
-                task.wait(1)
-            end
+            if t then go(t, 5) task.wait(1) end
         end
     end
 end)
