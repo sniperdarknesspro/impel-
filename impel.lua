@@ -16,13 +16,13 @@ end
 -- [[ AUTO IMPEL DOWN - FULL BYPASS & PRIORITY COLLECT ]]
 -- Thứ tự ưu tiên: Key > Bomb > ImpelGuard > Chest (Rương số)
 
-getgenv().AC = true 
+getgenv().AC = true
 local TS = game:GetService("TweenService")
 local RS = game:GetService("RunService")
-local lp = game.Players.LocalPlayer
 local Re = game:GetService("ReplicatedStorage")
+local lp = game.Players.LocalPlayer
 
--- [[ PHẦN 1: BYPASS ANTI-CHEAT ]]
+-- [[ PHẦN 1: BẢO MẬT NÂNG CAO (NATALIE WOOD LOGIC) ]]
 task.spawn(function()
     pcall(function()
         for _, v in pairs(game:GetDescendants()) do
@@ -30,89 +30,111 @@ task.spawn(function()
         end
     end)
     pcall(function()
-        local o; o = hookfunction(Instance.new("RemoteEvent").FireServer, newcclosure(function(s,...)
+        local o; o = hookfunction(Instance.new("RemoteEvent").FireServer, newcclosure(function(s, ...)
             local a = {...}
             if typeof(a[1]) == "table" and a[1].Mode == "Get" then return nil end
-            return o(s,...)
+            return o(s, ...)
         end))
     end)
 end)
 
--- [[ PHẦN 2: AUTO SKILL ]]
-local function sk()
-    pcall(function()
-        Re.Events.stats:FireServer("DevilFruitMastery", nil, 700)
-        local s = Re:FindFirstChild(lp.Name.."|ServerScriptService.Skills.Skills.SkillContainer.Bomb-Bomb.Explosive Mines")
-        if s then s:InvokeServer({cf=lp.Character.HumanoidRootPart.CFrame}) 
-        else Re.Events.Skill:InvokeServer("Explosive Mines") end
-    end)
-end
+-- [[ PHẦN 2: HÀM DI CHUYỂN THANG MÁY (ELEVATOR) ]]
+local function ElevatorMove(target, landHeight)
+    local char = lp.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root or not target then return end
 
--- [[ PHẦN 3: DI CHUYỂN THANG MÁY (Y HIỆN TẠI + 200) ]]
-local function go(t, h)
-    local c = lp.Character
-    local r = c and c:FindFirstChild("HumanoidRootPart")
-    if not r or not t then return end
-    
-    local f = true
-    local nc = RS.Stepped:Connect(function()
-        if not f then return end
-        for _,p in pairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
+    local flying = true
+    local noclip = RS.Stepped:Connect(function()
+        if not flying then return end
+        for _, p in pairs(char:GetDescendants()) do
+            if p:IsA("BasePart") then p.CanCollide = false end
+        end
     end)
 
-    -- Lấy vị trí Y hiện tại và cộng thêm 200
-    local startPos = r.Position
-    local skyY = startPos.Y + 100 
-    local targetLanding = t:GetPivot().Position + Vector3.new(0, h or 5, 0)
-    
-    -- 1. THANG MÁY LÊN: Từ Y hiện tại nhảy lên +200
-    r.CFrame = CFrame.new(startPos.X, skyY, startPos.Z)
+    -- TỌA ĐỘ CHI TIẾT
+    local startPos = root.Position
+    local targetPos = target:GetPivot().Position + Vector3.new(0, landHeight or 5, 0)
+    local skyY = startPos.Y + 300 -- Độ cao an toàn tránh mọi vật cản
+
+    -- BƯỚC 1: TELE LÊN CAO (INSTANT TELEPORT)
+    root.CFrame = CFrame.new(startPos.X, skyY, startPos.Z)
     task.wait(0.1)
-    
-    -- 2. BAY NGANG TRÊN TRỜI: Giữ nguyên độ cao skyY
-    local skyPoint = Vector3.new(targetLanding.X, skyY, targetLanding.Z)
-    local dist = (r.Position - skyPoint).Magnitude
-    local tw = TS:Create(r, TweenInfo.new(dist/100, Enum.EasingStyle.Linear), {CFrame = CFrame.new(skyPoint)})
-    tw:Play()
-    tw.Completed:Wait()
-    
-    -- 3. THANG MÁY XUỐNG: Đáp xuống mục tiêu
-    r.CFrame = CFrame.new(targetLanding)
+
+    -- BƯỚC 2: BAY NGANG TRÊN KHÔNG (TWEEN NGANG)
+    local skyPoint = Vector3.new(targetPos.X, skyY, targetPos.Z)
+    local dist = (root.Position - skyPoint).Magnitude
+    local tween = TS:Create(root, TweenInfo.new(dist/120, Enum.EasingStyle.Linear), {CFrame = CFrame.new(skyPoint)})
+    tween:Play()
+    tween.Completed:Wait()
+
+    -- BƯỚC 3: TELE XUỐNG ĐÍCH (KHÔNG BAY XUỐNG - CHỐNG BAN)
+    root.CFrame = CFrame.new(targetPos)
     task.wait(0.2)
 
-    -- Nhặt đồ
-    local p = t:FindFirstChildOfClass("ProximityPrompt", true)
-    if p then
-        p.HoldDuration = 0
-        p:InputHoldBegin()
-        task.wait(0.2)
-        fireproximityprompt(p)
-        p:InputHoldEnd()
+    -- NHẶT ĐỒ / MỞ RƯƠNG
+    local prompt = target:FindFirstChildOfClass("ProximityPrompt", true)
+    if prompt then
+        prompt.HoldDuration = 0
+        prompt:InputHoldBegin()
+        task.wait(0.1)
+        fireproximityprompt(prompt)
+        prompt:InputHoldEnd()
     end
+
+    flying = false
+    noclip:Disconnect()
     
-    f = false
-    nc:Disconnect()
-    sk()
+    -- Dùng Skill Bomb nổ sau khi tới đích
+    pcall(function()
+        Re.Events.stats:FireServer("DevilFruitMastery", nil, 700)
+        Re.Events.Skill:InvokeServer("Explosive Mines")
+    end)
 end
 
--- [[ PHẦN 4: VÒNG LẶP CHÍNH ]]
+-- [[ PHẦN 3: LOGIC QUÉT ƯU TIÊN (PRIORITY SCANNER) ]]
 task.spawn(function()
     while getgenv().AC do
         task.wait(1)
-        local r = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-        if r then
-            -- Thứ tự ưu tiên: Key > Bomb > Guard/Chest
-            local t = workspace.Effects:FindFirstChild("Key") or workspace.Effects:FindFirstChild("Bomb")
-            if not t then
-                local m = math.huge
-                for _,v in pairs(workspace:GetDescendants()) do
-                    if (v.Name == "ImpelGuard" or tonumber(v.Name) or v.Name:match("Chest")) and v:FindFirstChildOfClass("ProximityPrompt", true) then
-                        local d = (r.Position - v:GetPivot().Position).Magnitude
-                        if d < m then m = d t = v end
+        local root = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            local target = nil
+            
+            -- Priority 1: Vera (Boss)
+            target = workspace.NPCs:FindFirstChild("Vera")
+            
+            -- Priority 2: Key (Khi bị còng)
+            if not target then target = workspace.Effects:FindFirstChild("Key") end
+            
+            -- Priority 3: Chest (Rương số hoặc Chest)
+            if not target then
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if (tonumber(v.Name) or v.Name:match("Chest")) and v:FindFirstChildOfClass("ProximityPrompt", true) then
+                        target = v break
                     end
                 end
             end
-            if t then go(t, 5) task.wait(1) end
+            
+            -- Priority 4: Bomb
+            if not target then target = workspace.Effects:FindFirstChild("Bomb") end
+            
+            -- Priority 5: ImpelGuard
+            if not target then
+                local minD = math.huge
+                for _, v in pairs(workspace.NPCs:GetChildren()) do
+                    if v.Name == "ImpelGuard" then
+                        local d = (root.Position - v:GetPivot().Position).Magnitude
+                        if d < minD then minD = d target = v end
+                    end
+                end
+            end
+
+            -- THỰC THI DI CHUYỂN
+            if target then
+                print(">> Đang nhắm tới: " .. target.Name)
+                ElevatorMove(target, 5)
+                task.wait(1)
+            end
         end
     end
 end)
