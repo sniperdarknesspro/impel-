@@ -62,7 +62,7 @@ local function go(t, h)
 
     -- Lấy vị trí Y hiện tại và cộng thêm 200
     local startPos = r.Position
-    local skyY = startPos.Y + 200 
+    local skyY = startPos.Y + 100 
     local targetLanding = t:GetPivot().Position + Vector3.new(0, h or 5, 0)
     
     -- 1. THANG MÁY LÊN: Từ Y hiện tại nhảy lên +200
