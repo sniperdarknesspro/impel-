@@ -15,14 +15,13 @@ end
 ]]
 -- [[ AUTO IMPEL DOWN - FULL BYPASS & PRIORITY COLLECT ]]
 -- Thứ tự ưu tiên: Key > Bomb > ImpelGuard > Chest (Rương số)
-
 getgenv().AC = true
 local lp = game.Players.LocalPlayer
 local RS = game:GetService("RunService")
 local TS = game:GetService("TweenService")
 local Re = game:GetService("ReplicatedStorage")
 
--- [[ 1. SIÊU BYPASS (NATALIE WOOD) ]]
+-- [[ 1. SIÊU BYPASS CHẶN QUÉT ]]
 task.spawn(function()
     pcall(function()
         for _, v in pairs(game:GetDescendants()) do
@@ -36,60 +35,60 @@ task.spawn(function()
     end)
 end)
 
--- [[ 2. HỆ THỐNG GEPPO CHỐNG PHÁT HIỆN ]]
-local function AntiBanGeppo()
-    pcall(function()
-        local g = Re:FindFirstChild("Events") and Re.Events:FindFirstChild("Geppo")
-        if g then g:FireServer() end
-        lp.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end)
+-- [[ 2. HÀM BAY LÊN AN TOÀN (FIX LỖI TRỤC Y) ]]
+local function SafeRise(root, targetY)
+    local speedY = 50 -- Vận tốc bay lên (Giảm xuống nếu vẫn bị chữ đỏ)
+    while root.Position.Y < targetY and getgenv().AC do
+        root.Velocity = Vector3.new(0, speedY, 0)
+        -- Gửi Geppo liên tục để server tưởng bạn đang nhảy lên
+        pcall(function() Re.Events.Geppo:FireServer() end)
+        task.wait()
+        if (targetY - root.Position.Y) < 5 then break end
+    end
+    root.Velocity = Vector3.new(0, 0, 0)
 end
 
--- [[ 3. HÀM DI CHUYỂN AN TOÀN - CHỐNG VĂNG MAP ]]
+-- [[ 3. HÀM DI CHUYỂN TỔNG HỢP ]]
 local function go(target, landH)
     local c = lp.Character
     local r = c and c:FindFirstChild("HumanoidRootPart")
     if not r or not target then return end
 
     local targetPos = target:GetPivot().Position + Vector3.new(0, landH or 5, 0)
-    local skyY = r.Position.Y + 150 -- Độ cao nhảy lên vừa đủ để an toàn
+    local skyY = r.Position.Y + 150 
     
     local f = true
     local nc = RS.Stepped:Connect(function()
         if not f then return end
-        r.Velocity = Vector3.new(0,0,0) -- Triệt tiêu lực văng
         for _, p in pairs(c:GetDescendants()) do 
             if p:IsA("BasePart") then p.CanCollide = false end 
         end
     end)
 
-    -- BƯỚC 1: TELE LÊN CAO & ĐÓNG BĂNG TỨC THÌ
-    r.CFrame = CFrame.new(r.Position.X, skyY, r.Position.Z)
-    r.Anchored = true -- Khóa cứng chống văng
-    task.wait(0.2)
-    r.Anchored = false
+    -- BƯỚC 1: BAY LÊN TỪ TỪ (KHÔNG DÙNG TELEPORT TRỤC Y)
+    SafeRise(r, skyY)
+    task.wait(0.1)
 
-    -- BƯỚC 2: BAY NGANG (GIỮ ĐỘ CAO TUYỆT ĐỐI)
+    -- BƯỚC 2: BAY NGANG TRÊN KHÔNG
     local skyPoint = Vector3.new(targetPos.X, skyY, targetPos.Z)
     local dist = (r.Position - skyPoint).Magnitude
-    local tw = TS:Create(r, TweenInfo.new(dist/120, Enum.EasingStyle.Linear), {CFrame = CFrame.new(skyPoint)})
+    local tw = TS:Create(r, TweenInfo.new(dist/100, Enum.EasingStyle.Linear), {CFrame = CFrame.new(skyPoint)})
     
     tw:Play()
     task.spawn(function()
         while f and tw.PlaybackState == Enum.PlaybackState.Playing do
-            AntiBanGeppo()
-            task.wait(0.4)
+            pcall(function() Re.Events.Geppo:FireServer() end)
+            lp.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            task.wait(0.3)
         end
     end)
     tw.Completed:Wait()
 
-    -- BƯỚC 3: TELE XUỐNG MỤC TIÊU
-    r.Anchored = true
+    -- BƯỚC 3: TELE XUỐNG (CHỈ TELE KHI ĐÃ Ở NGAY TRÊN ĐẦU)
     r.CFrame = CFrame.new(targetPos)
     task.wait(0.2)
-    r.Anchored = false
 
-    -- TỰ ĐỘNG NHẶT
+    -- NHẶT ĐỒ
     local p = target:FindFirstChildOfClass("ProximityPrompt", true)
     if p then
         p.HoldDuration = 0
@@ -108,7 +107,6 @@ task.spawn(function()
     while getgenv().AC do
         task.wait(1)
         if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-            -- Ưu tiên: Vera > Key > Chest > Bomb > Guard
             local t = workspace.NPCs:FindFirstChild("Vera") or workspace.Effects:FindFirstChild("Key")
             if not t then
                 for _, v in pairs(workspace:GetDescendants()) do
